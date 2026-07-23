@@ -1,0 +1,1215 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Pro Expense Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #e2e8f0;
+        display: flex;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: 240px;
+        background: #0f172a;
+        padding: 25px;
+        height: 100vh;
+        border-right: 1px solid #1e293b;
+      }
+
+      .sidebar h2 {
+        color: #22c55e;
+        margin-bottom: 30px;
+      }
+
+      .sidebar button {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        background: #1e293b;
+        color: #e2e8f0;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .sidebar button:hover {
+        background: #334155;
+      }
+
+      .main {
+        flex: 1;
+        padding: 40px;
+        overflow: auto;
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background: #1e293b;
+        padding: 25px;
+        border-radius: 18px;
+        border: 1px solid #334155;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      }
+
+      .card h3 {
+        margin-bottom: 15px;
+        color: #94a3b8;
+      }
+
+      .card h1 {
+        font-size: 28px;
+        color: #22c55e;
+      }
+
+      input {
+        padding: 10px;
+        margin: 6px;
+        border: none;
+        border-radius: 8px;
+        background: #0f172a;
+        color: #e2e8f0;
+        border: 1px solid #334155;
+      }
+
+      /* ── CHANGE 1: hide number-input spinners ── */
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+
+      /* ── CHANGE 1: style the category <select> to match inputs ── */
+      select.category-select {
+        padding: 10px;
+        margin: 6px;
+        border: none;
+        border-radius: 8px;
+        background: #0f172a;
+        color: #e2e8f0;
+        border: 1px solid #334155;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 28px;
+      }
+      select.category-select option {
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+
+      .primary {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 8px;
+        background: #22c55e;
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .primary:hover {
+        background: #16a34a;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+
+      th {
+        padding: 12px;
+        background: #0f172a;
+        color: #94a3b8;
+      }
+
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #334155;
+        text-align: center;
+      }
+
+      .auth-container {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .auth-box {
+        background: #1e293b;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        border: 1px solid #334155;
+      }
+
+      /* ── CHANGE 2: VS Code-style right panel ── */
+      #aiSection {
+        position: fixed;
+        top: 0;
+        right: -30%;
+        width: 30%;
+        height: 100vh;
+        background: #0f172a;
+        border-left: 1px solid #334155;
+        box-shadow: -6px 0 30px rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+      }
+      #aiSection.ai-open {
+        right: 0;
+      }
+      /* push .main content left when panel opens */
+      .main.ai-pushed {
+        margin-right: 30%;
+        transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .main {
+        transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #aiPanelHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid #1e293b;
+        background: #0f172a;
+        flex-shrink: 0;
+      }
+      #aiPanelHeader h3 {
+        color: #22c55e;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+      #aiCloseBtn {
+        background: none;
+        border: none;
+        color: #64748b;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        line-height: 1;
+        transition:
+          color 0.2s,
+          background 0.2s;
+      }
+      #aiCloseBtn:hover {
+        color: #e2e8f0;
+        background: #1e293b;
+      }
+      #aiPanelBody {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #aiPanelBody::-webkit-scrollbar {
+        width: 4px;
+      }
+      #aiPanelBody::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #aiPanelBody::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+      }
+      #aiInputRow {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-shrink: 0;
+        padding: 12px 20px;
+        border-top: 1px solid #1e293b;
+        background: #0f172a;
+      }
+      #aiQuery {
+        flex: 1;
+        min-width: 0;
+        padding: 9px 12px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 13px;
+      }
+      #aiQuery:focus {
+        outline: none;
+        border-color: #22c55e;
+      }
+      #submitAiBtn {
+        padding: 9px 14px;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+      /* Chat message stacking styles */
+      #chatMessages {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .user-msg {
+        align-self: flex-end;
+        background: #22c55e;
+        color: #0f172a;
+        padding: 9px 13px;
+        border-radius: 12px 12px 2px 12px;
+        font-size: 13px;
+        max-width: 85%;
+        font-weight: 500;
+        word-wrap: break-word;
+      }
+      .ai-msg {
+        align-self: flex-start;
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 12px 14px;
+        border-radius: 2px 12px 12px 12px;
+        font-size: 13px;
+        max-width: 92%;
+        line-height: 1.7;
+        white-space: pre-line;
+        border: 1px solid #334155;
+        word-wrap: break-word;
+      }
+      .ai-msg-thinking {
+        color: #64748b;
+        font-style: italic;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- AUTH -->
+    <div id="authSection" class="auth-container">
+      <div class="auth-box">
+        <h2 style="color: #22c55e; margin-bottom: 30px">💰 ExpensePro</h2>
+
+        <div style="display: none" id="loginForm">
+          <h3 style="margin-bottom: 20px">Login</h3>
+          <input type="text" id="loginUsername" placeholder="Username" /><br />
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Password"
+          /><br /><br />
+          <div
+            id="loginError"
+            style="
+              color: #ef4444;
+              margin-bottom: 10px;
+              font-size: 14px;
+              display: none;
+            "
+          ></div>
+          <button class="primary" id="loginBtn">Login</button>
+          <button
+            class="primary"
+            style="background: #64748b; margin-top: 10px"
+            onclick="switchToRegister()"
+          >
+            Create Account
+          </button>
+        </div>
+
+        <div id="registerForm">
+          <h3 style="margin-bottom: 20px">Create Account</h3>
+          <input type="text" id="regUsername" placeholder="Username" /><br />
+
+          <label
+            style="
+              font-size: 12px;
+              color: #94a3b8;
+              text-align: left;
+              display: block;
+              margin: 10px 0 5px 0;
+            "
+          >
+            Password Requirements:
+          </label>
+          <input
+            type="password"
+            id="regPassword"
+            placeholder="Password"
+            oninput="validatePasswordRealtime()"
+          /><br />
+
+          <div
+            id="passwordRequirements"
+            style="
+              font-size: 12px;
+              color: #e2e8f0;
+              text-align: left;
+              margin: 10px 0;
+              line-height: 1.8;
+            "
+          >
+            <div><span id="reqLowercase">❌</span> 6+ lowercase letters</div>
+            <div><span id="reqNumber">❌</span> At least 1 number</div>
+            <div>
+              <span id="reqSpecial">❌</span> 1 special character (!@#$%...)
+            </div>
+          </div>
+
+          <div
+            id="regError"
+            style="
+              color: #ef4444;
+              margin-bottom: 10px;
+              font-size: 14px;
+              display: none;
+            "
+          ></div>
+          <button class="primary" id="registerBtn">Register</button>
+          <button
+            class="primary"
+            style="background: #64748b; margin-top: 10px"
+            onclick="switchToLogin()"
+          >
+            Have Account? Login
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboardSection" style="display: none; width: 100%">
+      <div class="sidebar">
+        <h2>💰 ExpensePro</h2>
+        <button id="logoutBtn">Logout</button>
+        <button id="exportBtn">Export CSV</button>
+        <button id="askAiBtn">Ask AI</button>
+      </div>
+
+      <div class="main">
+        <!-- KPI CARDS -->
+        <div class="dashboard">
+          <div class="card">
+            <h3>Total Spending</h3>
+            <h1 id="totalSpend">₹0</h1>
+          </div>
+          <div class="card">
+            <h3>Total Categories</h3>
+            <h1 id="totalCategories">0</h1>
+          </div>
+          <div class="card">
+            <h3>This Month Spend</h3>
+            <h1 id="thisMonth">₹0</h1>
+          </div>
+        </div>
+
+        <!-- ADD EXPENSE -->
+        <div class="card">
+          <h3>Add Expense</h3>
+          <!-- CHANGE 1: number field with spinner hidden; category replaced by <select> -->
+          <input
+            type="number"
+            id="amount"
+            placeholder="Amount"
+            min="0"
+            step="any"
+            oninput="
+              this.value = this.value
+                .replace(/[^0-9.]/g, '')
+                .replace(/(\..*)\./g, '$1')
+            "
+          />
+          <select id="category" class="category-select">
+            <option value="" disabled selected>Select Category</option>
+            <option value="Food">Food</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Transport">Transport</option>
+            <option value="Car">Car</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Housing">Housing</option>
+            <option value="Rent">Rent</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Electricity">Electricity</option>
+            <option value="Water">Water</option>
+            <option value="Internet">Internet</option>
+            <option value="Mobile">Mobile</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Medicine">Medicine</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Education">Education</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Subscriptions">Subscriptions</option>
+            <option value="Travel">Travel</option>
+            <option value="Hotel">Hotel</option>
+            <option value="Dining Out">Dining Out</option>
+            <option value="Gym">Gym</option>
+            <option value="Personal Care">Personal Care</option>
+            <option value="Gifts">Gifts</option>
+            <option value="Savings">Savings</option>
+            <option value="Investments">Investments</option>
+            <option value="EMI">EMI</option>
+            <option value="Loan">Loan</option>
+            <option value="Tax">Tax</option>
+            <option value="Miscellaneous">Miscellaneous</option>
+          </select>
+          <input type="date" id="date" />
+          <button class="primary" id="addExpenseBtn">Add</button>
+        </div>
+
+        <br />
+
+        <!-- CHARTS -->
+        <div class="grid-2">
+          <div class="card">
+            <h3>Category Distribution</h3>
+            <canvas id="chart"></canvas>
+          </div>
+          <div class="card">
+            <h3>Monthly Trend</h3>
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <br />
+
+        <!-- SET BUDGET -->
+        <div class="card">
+          <h3>Set Monthly Budget</h3>
+          <input type="text" id="bCategory" placeholder="Category" />
+          <input type="number" id="month" placeholder="Month (1-12)" />
+          <input type="number" id="year" placeholder="Year" />
+          <input type="number" id="limit" placeholder="Monthly Limit" />
+          <button class="primary" id="setBudgetBtn">Save Budget</button>
+        </div>
+
+        <br />
+
+        <!-- SPEND VS BUDGET -->
+        <div class="card">
+          <h3>Spend vs Budget</h3>
+          <input type="number" id="svMonth" placeholder="Month" />
+          <input type="number" id="svYear" placeholder="Year" />
+          <button class="primary" id="checkBudgetBtn">Check</button>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Budget</th>
+                <th>Spent</th>
+                <th>Remaining</th>
+              </tr>
+            </thead>
+            <tbody id="svTable"></tbody>
+          </table>
+        </div>
+
+        <br />
+      </div>
+      <!-- /.main -->
+
+      <!-- CHANGE 2: VS Code-style fixed right panel -->
+      <div id="aiSection">
+        <div id="aiPanelHeader">
+          <h3>🤖 AI Financial Assistant</h3>
+          <button id="aiCloseBtn" title="Close">✕</button>
+        </div>
+        <div id="aiPanelBody">
+          <div id="chatMessages"></div>
+          <div id="aiChart" style="display: none">
+            <canvas id="aiChartCanvas" width="300" height="160"></canvas>
+          </div>
+          <div id="suggestedQuestions" style="display: none">
+            <h4 style="color: #94a3b8; margin-bottom: 10px; font-size: 12px">
+              💡 Related Questions:
+            </h4>
+            <div
+              id="questionSuggestions"
+              style="display: flex; flex-wrap: wrap; gap: 8px"
+            ></div>
+          </div>
+        </div>
+        <div id="aiInputRow">
+          <input
+            type="text"
+            id="aiQuery"
+            placeholder="Ask about your finances..."
+          />
+          <button class="primary" id="submitAiBtn">Ask</button>
+        </div>
+      </div>
+    </div>
+    <!-- /#dashboardSection -->
+
+    <script>
+      const API = "http://127.0.0.1:5000";
+      let chartInstance = null;
+      let trendChartInstance = null;
+
+      // Form switching
+      function switchToLogin() {
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("loginForm").style.display = "block";
+      }
+
+      function switchToRegister() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "block";
+      }
+
+      // Real-time password validation
+      async function validatePasswordRealtime() {
+        const password = document.getElementById("regPassword").value;
+        const res = await fetch(`${API}/validate-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: password }),
+        });
+        const data = await res.json();
+        const reqs = data.requirements;
+
+        // Update UI with checkmarks/X marks
+        document.getElementById("reqLowercase").textContent = reqs.lowercase
+          ? "✅"
+          : "❌";
+        document.getElementById("reqNumber").textContent = reqs.number
+          ? "✅"
+          : "❌";
+        document.getElementById("reqSpecial").textContent = reqs.special
+          ? "✅"
+          : "❌";
+      }
+
+      /* REGISTER */
+      document.getElementById("registerBtn").onclick = async () => {
+        const username = document.getElementById("regUsername").value.trim();
+        const password = document.getElementById("regPassword").value;
+        const errorDiv = document.getElementById("regError");
+
+        if (!username) {
+          errorDiv.textContent = "Username is required";
+          errorDiv.style.display = "block";
+          return;
+        }
+
+        const res = await fetch(`${API}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username, password: password }),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          errorDiv.style.display = "none";
+          alert("Registered successfully! Now login with your credentials.");
+          switchToLogin();
+          document.getElementById("regUsername").value = "";
+          document.getElementById("regPassword").value = "";
+        } else {
+          errorDiv.textContent = data.message || "Registration failed";
+          errorDiv.style.display = "block";
+        }
+      };
+
+      /* LOGIN */
+      document.getElementById("loginBtn").onclick = async () => {
+        const username = document.getElementById("loginUsername").value.trim();
+        const password = document.getElementById("loginPassword").value;
+        const errorDiv = document.getElementById("loginError");
+
+        if (!username || !password) {
+          errorDiv.textContent = "Username and password are required";
+          errorDiv.style.display = "block";
+          return;
+        }
+
+        const res = await fetch(`${API}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username, password: password }),
+        });
+        const data = await res.json();
+
+        if (data.user_id) {
+          localStorage.setItem("user_id", data.user_id);
+          errorDiv.style.display = "none";
+          showDashboard();
+        } else {
+          errorDiv.textContent = data.message || "Invalid credentials";
+          errorDiv.style.display = "block";
+        }
+      };
+
+      function showDashboard() {
+        document.getElementById("authSection").style.display = "none";
+        document.getElementById("dashboardSection").style.display = "flex";
+        loadAll();
+      }
+
+      /* LOGOUT */
+      document.getElementById("logoutBtn").onclick = () => {
+        localStorage.removeItem("user_id");
+        location.reload();
+      };
+
+      /* EXPORT */
+      document.getElementById("exportBtn").onclick = () => {
+        const id = localStorage.getItem("user_id");
+        window.open(`${API}/export-csv?user_id=${id}`);
+      };
+
+      /* ASK AI — CHANGE 2: VS Code-style right panel toggle */
+      document.getElementById("askAiBtn").onclick = () => {
+        const aiSection = document.getElementById("aiSection");
+        const mainEl = document.querySelector(".main");
+        const isOpen = aiSection.classList.contains("ai-open");
+        if (isOpen) {
+          aiSection.classList.remove("ai-open");
+          mainEl.classList.remove("ai-pushed");
+        } else {
+          aiSection.classList.add("ai-open");
+          mainEl.classList.add("ai-pushed");
+        }
+      };
+
+      document.getElementById("aiCloseBtn").onclick = () => {
+        document.getElementById("aiSection").classList.remove("ai-open");
+        document.querySelector(".main").classList.remove("ai-pushed");
+      };
+
+      /* SUBMIT AI QUERY */
+      document.getElementById("submitAiBtn").onclick = async () => {
+        const id = localStorage.getItem("user_id");
+        const query = document.getElementById("aiQuery").value.trim();
+        if (!query) return;
+
+        const chat = document.getElementById("chatMessages");
+        const aiChart = document.getElementById("aiChart");
+        const suggestedQuestions =
+          document.getElementById("suggestedQuestions");
+        const questionSuggestions = document.getElementById(
+          "questionSuggestions",
+        );
+
+        // Clear suggestions from previous turn
+        suggestedQuestions.style.display = "none";
+        questionSuggestions.innerHTML = "";
+
+        // Append user bubble
+        const userDiv = document.createElement("div");
+        userDiv.className = "user-msg";
+        userDiv.textContent = query;
+        chat.appendChild(userDiv);
+
+        // Clear input
+        document.getElementById("aiQuery").value = "";
+
+        // Append AI thinking bubble
+        const aiDiv = document.createElement("div");
+        aiDiv.className = "ai-msg";
+        aiDiv.innerHTML =
+          '<span class="ai-msg-thinking">🤔 Analyzing your financial data...</span>';
+        chat.appendChild(aiDiv);
+
+        // Scroll to latest
+        const panelBody = document.getElementById("aiPanelBody");
+        panelBody.scrollTop = panelBody.scrollHeight;
+
+        try {
+          const res = await fetch(`${API}/ask-ai`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: id,
+              query: query,
+            }),
+          });
+
+          const data = await res.json();
+          const fullResponse = data.answer || "Error occurred";
+
+          // Typewrite into the NEW aiDiv (not a shared element)
+          await typeWriterEffect(aiDiv, fullResponse);
+
+          // Scroll again after content fills in
+          panelBody.scrollTop = panelBody.scrollHeight;
+
+          // Process visual data and create charts
+          processAiVisualData(fullResponse);
+
+          // Show suggested questions
+          showSuggestedQuestions(
+            query,
+            questionSuggestions,
+            suggestedQuestions,
+          );
+        } catch (error) {
+          aiDiv.innerHTML =
+            '<span style="color:#ef4444;">❌ Sorry, I encountered an error. Please try again.</span>';
+        }
+      };
+
+      // Progressive typing effect
+      async function typeWriterEffect(element, text) {
+        element.innerHTML = "";
+        const words = text.split(" ");
+        let currentText = "";
+
+        for (let i = 0; i < words.length; i++) {
+          currentText += words[i] + " ";
+          element.innerHTML =
+            currentText +
+            '<span style="color: #94a3b8; animation: blink 1s infinite;">|</span>';
+
+          // Adjust speed based on word length for more natural feel
+          const delay = Math.min(50 + Math.random() * 30, 80);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        // Remove cursor
+        element.innerHTML = currentText.trim();
+      }
+
+      // Show suggested related questions
+      function showSuggestedQuestions(originalQuery, container, wrapper) {
+        const suggestions = generateSuggestions(originalQuery);
+
+        suggestions.forEach((suggestion) => {
+          const button = document.createElement("button");
+          button.textContent = suggestion;
+          button.style.cssText = `
+            padding: 8px 12px;
+            background: #334155;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+          `;
+          button.onmouseover = () => {
+            button.style.background = "#475569";
+            button.style.borderColor = "#64748b";
+          };
+          button.onmouseout = () => {
+            button.style.background = "#334155";
+            button.style.borderColor = "#475569";
+          };
+          button.onclick = () => {
+            document.getElementById("aiQuery").value = suggestion;
+            document.getElementById("submitAiBtn").click();
+          };
+          container.appendChild(button);
+        });
+
+        wrapper.style.display = "block";
+      }
+
+      // Generate context-aware suggestions
+      function generateSuggestions(originalQuery) {
+        const query = originalQuery.toLowerCase();
+        const suggestions = [];
+
+        if (
+          query.includes("spending") ||
+          query.includes("expense") ||
+          query.includes("spent")
+        ) {
+          suggestions.push(
+            "What are my biggest expense categories?",
+            "How much did I spend last month?",
+            "Show me my spending trends",
+          );
+        } else if (query.includes("budget") || query.includes("limit")) {
+          suggestions.push(
+            "Am I staying within my budgets?",
+            "Which categories are over budget?",
+            "Help me set better budgets",
+          );
+        } else if (query.includes("report") || query.includes("summary")) {
+          suggestions.push(
+            "What are my monthly spending patterns?",
+            "Compare my spending to last year",
+            "Generate a detailed financial analysis",
+          );
+        } else if (
+          query.includes("suggestion") ||
+          query.includes("advice") ||
+          query.includes("save")
+        ) {
+          suggestions.push(
+            "How can I reduce my expenses?",
+            "What categories should I focus on?",
+            "Give me personalized saving tips",
+          );
+        } else {
+          suggestions.push(
+            "What's my total spending?",
+            "Generate a financial report",
+            "Any suggestions to save money?",
+          );
+        }
+
+        return suggestions.slice(0, 3); // Return up to 3 suggestions
+      }
+
+      // Process visual data from AI response and create charts
+      function processAiVisualData(responseText) {
+        const aiChart = document.getElementById("aiChart");
+        const canvas = document.getElementById("aiChartCanvas");
+
+        // Extract visual data from response
+        const lines = responseText.split("\n");
+        let chartData = null;
+        let chartType = "bar";
+        let chartTitle = "Financial Data";
+        let explicitChartType = null;
+
+        for (const line of lines) {
+          if (line.startsWith("CHART_TYPE:")) {
+            explicitChartType = line
+              .replace("CHART_TYPE:", "")
+              .trim()
+              .toLowerCase();
+          }
+
+          if (line.startsWith("MONTHLY_DATA:")) {
+            const data = line
+              .replace("MONTHLY_DATA:", "")
+              .split(",")
+              .map(Number);
+            const labels = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
+            chartData = {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Monthly Spending",
+                  data: data,
+                  backgroundColor: "rgba(34, 197, 94, 0.6)",
+                  borderColor: "rgba(34, 197, 94, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            };
+            chartType = "line";
+            chartTitle = "Monthly Spending Trend";
+          } else if (line.startsWith("CATEGORY_DATA:")) {
+            const data = line
+              .replace("CATEGORY_DATA:", "")
+              .split(",")
+              .map(Number);
+            const labels =
+              lines
+                .find((l) => l.startsWith("CATEGORY_LABELS:"))
+                ?.replace("CATEGORY_LABELS:", "")
+                .split(",") || [];
+            chartData = {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Category Spending",
+                  data: data,
+                  backgroundColor: [
+                    "rgba(34, 197, 94, 0.6)",
+                    "rgba(59, 130, 246, 0.6)",
+                    "rgba(245, 158, 11, 0.6)",
+                    "rgba(239, 68, 68, 0.6)",
+                    "rgba(168, 85, 247, 0.6)",
+                  ],
+                  borderColor: [
+                    "rgba(34, 197, 94, 1)",
+                    "rgba(59, 130, 246, 1)",
+                    "rgba(245, 158, 11, 1)",
+                    "rgba(239, 68, 68, 1)",
+                    "rgba(168, 85, 247, 1)",
+                  ],
+                  borderWidth: 1,
+                },
+              ],
+            };
+            chartType = "doughnut";
+            chartTitle = "Spending by Category";
+          } else if (line.startsWith("YEARLY_DATA:")) {
+            const data = line
+              .replace("YEARLY_DATA:", "")
+              .split(",")
+              .map(Number);
+            const labels =
+              lines
+                .find((l) => l.startsWith("YEARLY_LABELS:"))
+                ?.replace("YEARLY_LABELS:", "")
+                .split(",") || [];
+            chartData = {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Yearly Spending",
+                  data: data,
+                  backgroundColor: "rgba(34, 197, 94, 0.6)",
+                  borderColor: "rgba(34, 197, 94, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            };
+            chartType = "bar";
+            chartTitle = "Yearly Spending Comparison";
+          }
+        }
+
+        if (explicitChartType) {
+          if (["line", "bar", "pie", "doughnut"].includes(explicitChartType)) {
+            chartType = explicitChartType;
+          }
+        }
+
+        if (
+          chartType === "pie" &&
+          chartData &&
+          chartData.datasets[0].data.length > 0
+        ) {
+          chartTitle = chartTitle.includes("Category")
+            ? chartTitle
+            : "Pie Chart";
+          // pie charts shouldn't have numeric scales
+        }
+
+        if (chartData) {
+          if (window.aiChartInstance) {
+            window.aiChartInstance.destroy();
+          }
+
+          const ctx = canvas.getContext("2d");
+          window.aiChartInstance = new Chart(ctx, {
+            type: chartType,
+            data: chartData,
+            options: {
+              responsive: true,
+              plugins: {
+                title: {
+                  display: true,
+                  text: chartTitle,
+                  color: "#e2e8f0",
+                  font: {
+                    size: 16,
+                  },
+                },
+                legend: {
+                  labels: {
+                    color: "#e2e8f0",
+                  },
+                },
+              },
+              scales:
+                chartType !== "doughnut" && chartType !== "pie"
+                  ? {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          color: "#94a3b8",
+                          callback: function (value) {
+                            return "₹" + value.toLocaleString();
+                          },
+                        },
+                        grid: {
+                          color: "#334155",
+                        },
+                      },
+                      x: {
+                        ticks: {
+                          color: "#94a3b8",
+                        },
+                        grid: {
+                          color: "#334155",
+                        },
+                      },
+                    }
+                  : {},
+            },
+          });
+
+          aiChart.style.display = "block";
+        }
+      }
+
+      // Load last AI response on page load
+      // Removed: loadLastAiResponse() — chat history is per-session, no overwrite reset
+
+      window.onload = () => {
+        // Initialize login form as default
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("loginForm").style.display = "block";
+
+        if (localStorage.getItem("user_id")) showDashboard();
+      };
+
+      /* ADD EXPENSE */
+      document.getElementById("addExpenseBtn").onclick = async () => {
+        const id = localStorage.getItem("user_id");
+        await fetch(`${API}/add-expense`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: id,
+            amount: parseFloat(document.getElementById("amount").value),
+            category: document.getElementById("category").value,
+            date: document.getElementById("date").value,
+          }),
+        });
+        loadAll();
+        document.getElementById("amount").value = "";
+        document.getElementById("category").value = "";
+        document.getElementById("date").value = "";
+      };
+
+      /* SET BUDGET */
+      document.getElementById("setBudgetBtn").onclick = async () => {
+        const id = localStorage.getItem("user_id");
+        await fetch(`${API}/set-budget`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: id,
+            category: document.getElementById("bCategory").value,
+            month: parseInt(document.getElementById("month").value),
+            year: parseInt(document.getElementById("year").value),
+            monthly_limit: parseFloat(document.getElementById("limit").value),
+          }),
+        });
+        alert("Budget Saved");
+        document.getElementById("bCategory").value = "";
+        document.getElementById("month").value = "";
+        document.getElementById("year").value = "";
+        document.getElementById("limit").value = "";
+      };
+
+      /* CHECK BUDGET */
+      document.getElementById("checkBudgetBtn").onclick = async () => {
+        const id = localStorage.getItem("user_id");
+        const res = await fetch(
+          `${API}/spend-vs-budget?user_id=${id}&month=${document.getElementById("svMonth").value}&year=${document.getElementById("svYear").value}`,
+        );
+        const data = await res.json();
+        let rows = "";
+        data.forEach((d) => {
+          rows += `<tr>
+      <td>${d.category}</td>
+      <td>₹${d.budget}</td>
+      <td>₹${d.spent}</td>
+      <td style="color:${d.remaining < 0 ? "#ef4444" : "#22c55e"}">₹${d.remaining}</td>
+    </tr>`;
+        });
+        document.getElementById("svTable").innerHTML = rows;
+      };
+
+      /* LOAD ALL */
+      async function loadAll() {
+        const id = localStorage.getItem("user_id");
+        const res = await fetch(`${API}/expenses?user_id=${id}`);
+        const data = await res.json();
+
+        let total = 0,
+          cat = {},
+          monthly = {};
+        data.forEach((e) => {
+          total += e.amount;
+          cat[e.category] = (cat[e.category] || 0) + e.amount;
+          const m = e.date.substring(0, 7);
+          monthly[m] = (monthly[m] || 0) + e.amount;
+        });
+
+        document.getElementById("totalSpend").innerText = "₹" + total;
+        document.getElementById("totalCategories").innerText =
+          Object.keys(cat).length;
+        document.getElementById("thisMonth").innerText = "₹" + total;
+
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(document.getElementById("chart"), {
+          type: "doughnut",
+          data: {
+            labels: Object.keys(cat),
+            datasets: [
+              {
+                data: Object.values(cat),
+                backgroundColor: [
+                  "#22c55e",
+                  "#3b82f6",
+                  "#f59e0b",
+                  "#ef4444",
+                  "#8b5cf6",
+                ],
+              },
+            ],
+          },
+        });
+
+        if (trendChartInstance) trendChartInstance.destroy();
+        trendChartInstance = new Chart(document.getElementById("trendChart"), {
+          type: "line",
+          data: {
+            labels: Object.keys(monthly),
+            datasets: [
+              {
+                label: "Monthly Spend",
+                data: Object.values(monthly),
+                borderColor: "#22c55e",
+                backgroundColor: "rgba(34,197,94,0.2)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
